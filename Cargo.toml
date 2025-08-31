@@ -1,0 +1,26 @@
+[package]
+authors     = ["Francisco Boni <boboniboni@gmail.com>"]
+categories  = ["development-tools"]
+description = "Uma Automation Debug"
+edition     = "2024"
+keywords    = ["development-tools", "musume", "uma", "uma-musume"]
+license     = "MIT"
+name        = "uma-auto-debug"
+readme      = "README.md"
+repository  = "https://github.com/uma/uma"
+version     = "0.1.0"
+
+[dependencies]
+color-eyre = "0.6.3"
+crossterm  = "0.29.0"
+ratatui    = "0.29.0"
+
+[lints.clippy]
+all                     = "warn"
+cargo                   = "warn"
+inline_always           = { level = "allow", priority = 1 }
+missing_const_for_fn    = { level = "allow", priority = 1 }
+multiple_crate_versions = { level = "allow", priority = 1 }
+nursery                 = "warn"
+pedantic                = "warn"
+too_many_lines          = { level = "allow", priority = 1 }

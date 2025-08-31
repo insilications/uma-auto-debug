@@ -1,0 +1,33 @@
+[package]
+authors     = ["Francisco Boni <boboniboni@gmail.com>"]
+categories  = ["development-tools"]
+description = "Uma Automation Debug"
+edition     = "2024"
+keywords    = ["development-tools", "musume", "uma", "uma-musume"]
+license     = "MIT"
+name        = "uma-auto-debug"
+readme      = "README.md"
+repository  = "https://github.com/uma/uma"
+version     = "0.1.0"
+
+[dependencies]
+adb_client = { git = "https://github.com/cocool97/adb_client.git", branch = "main" }
+anyhow = "1.0.99"
+clap       = { version = "4.5.46", features = ["derive"] }
+color-eyre = "0.6.5"
+crossterm  = "0.29.0"
+rand       = "0.9.2"
+ratatui    = { git = "https://github.com/ratatui/ratatui.git", features = ["all-widgets", "default"] }
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+
+[lints.clippy]
+all                     = "warn"
+cargo                   = "warn"
+inline_always           = { level = "allow", priority = 1 }
+missing_const_for_fn    = { level = "allow", priority = 1 }
+multiple_crate_versions = { level = "allow", priority = 1 }
+nursery                 = "warn"
+pedantic                = "warn"
+too_many_lines          = { level = "allow", priority = 1 }

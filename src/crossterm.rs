@@ -7,7 +7,7 @@ use std::{
 };
 
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, MouseEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -20,7 +20,7 @@ pub enum AppEvent {
     UiEvent(Event),
 }
 
-pub fn start(tick_rate: Duration, enhanced_graphics: bool) -> Result<(), Box<dyn Error>> {
+pub fn start(tick_rate: Duration) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout: io::Stdout = io::stdout();
@@ -34,7 +34,7 @@ pub fn start(tick_rate: Duration, enhanced_graphics: bool) -> Result<(), Box<dyn
     thread::spawn(move || input_thread(&event_tx));
 
     // create app and run it
-    let mut app: App<'_> = App::new("Uma Automation Debug", enhanced_graphics);
+    let mut app: App<'_> = App::new();
     app.setup_adb();
 
     let app_result: Result<(), Box<dyn Error>> = run_app(&mut terminal, &rx, &mut app, tick_rate);
@@ -104,18 +104,23 @@ pub fn input_thread(tx_event: &mpsc::Sender<AppEvent>) -> anyhow::Result<()> {
 }
 
 fn handle_ui_event(app: &mut App, event: &Event) {
-    if let Event::Key(key) = event {
-        match key.code {
-            // KeyCode::Char('h') | KeyCode::Left => app.on_left(),
-            // KeyCode::Char('j') | KeyCode::Down => app.on_down(),
-            // KeyCode::Char('k') | KeyCode::Up => app.on_up(),
+    match event {
+        Event::Key(key) => match key.code {
             KeyCode::Char('j') | KeyCode::Down => app.scroll_down(),
             KeyCode::Char('k') | KeyCode::Up => app.scroll_up(),
-            KeyCode::Char('h') | KeyCode::Left => app.scroll_left(),
-            KeyCode::Char('l') | KeyCode::Right => app.scroll_right(),
             KeyCode::Tab => app.on_right(),
             KeyCode::Char(c) => app.on_key(c),
             _ => {}
-        }
+        },
+        Event::Mouse(mouse) => match mouse.kind {
+            MouseEventKind::ScrollUp => {
+                app.scroll_up();
+            }
+            MouseEventKind::ScrollDown => {
+                app.scroll_down();
+            }
+            _ => (),
+        },
+        _ => (),
     }
 }

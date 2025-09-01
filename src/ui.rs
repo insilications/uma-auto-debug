@@ -1,109 +1,116 @@
 use ratatui::{
-    DefaultTerminal, Frame,
-    layout::{Alignment, Constraint, Layout, Margin, Rect},
+    Frame,
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
-    symbols::scrollbar,
-    text::{self, Line, Masked, Span},
-    widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Tabs, Wrap},
+    text::{self, Line, Span},
+    widgets::{Block, Paragraph, Scrollbar, ScrollbarOrientation, Tabs, Wrap},
 };
 
 use crate::app::App;
 
 pub fn render(frame: &mut Frame, app: &mut App) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(frame.area());
+    let [top_area, main_panel_area] =
+        Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).areas::<2>(frame.area());
 
-    let chunks_tab = Layout::horizontal([Constraint::Length(19), Constraint::Min(0)]).split(chunks[0]);
+    let [tab_area, _] = Layout::horizontal([Constraint::Length(19), Constraint::Min(0)]).areas::<2>(top_area);
 
-    let tabs = app
+    let tabs: Tabs<'_> = app
         .tabs
         .titles
         .iter()
         .map(|t| text::Line::from(Span::styled(*t, Style::default().fg(Color::Green))))
         .collect::<Tabs>()
-        // .block(Block::new().borders(Borders::TOP).title(app.title))
         .block(Block::bordered())
         .highlight_style(Style::default().fg(Color::Yellow))
         .select(app.tabs.index);
-    frame.render_widget(tabs, chunks_tab[0]);
+    frame.render_widget(tabs, tab_area);
     match app.tabs.index {
-        0 => draw_first_tab(frame, app, chunks[1]),
-        1 => draw_second_tab(frame, app, chunks[1]),
+        0 => draw_first_tab(frame, app, main_panel_area),
+        1 => draw_second_tab(frame, app, main_panel_area),
         _ => {}
     }
 }
 
 fn draw_first_tab(frame: &mut Frame, app: &mut App, area: Rect) {
-    let chunks = Layout::vertical([Constraint::Min(0)]).split(area);
-
-    draw_logs(frame, app, chunks[0]);
+    draw_logs(frame, app, area);
 }
 
 fn draw_logs(frame: &mut Frame, app: &mut App, area: Rect) {
-    // let block = Block::bordered();
+    // let total_lines = app.logs_buffer.len();
+    // app.vertical_scroll_state = app.vertical_scroll_state.content_length(total_lines);
 
-    let s = "Veeeeeeeeeeeeeeeery    loooooooooooooooooong   striiiiiiiiiiiiiiiiiiiiiiiiiing.   ";
-    let mut long_line = s.repeat(usize::from(area.width) / s.len() + 4);
-    long_line.push('\n');
+    // // Account for the bordered paragraph: inner height excludes the top/bottom borders
+    // let inner_height = area.height.saturating_sub(2) as usize;
+    // let max_scroll = total_lines.saturating_sub(inner_height);
 
-    let text = vec![
-        Line::from("This is a line "),
-        Line::from("This is a line   ".red()),
-        Line::from("This is a line".on_dark_gray()),
-        Line::from("This is a longer line".crossed_out()),
-        Line::from(long_line.clone()),
-        Line::from("This is a line".reset()),
-        Line::from(vec![
-            Span::raw("Masked text: "),
-            Span::styled(Masked::new("password", '*'), Style::new().fg(Color::Red)),
-        ]),
-        Line::from("This is a line "),
-        Line::from("This is a line   ".red()),
-        Line::from("This is a line".on_dark_gray()),
-        Line::from("This is a longer line".crossed_out()),
-        Line::from(long_line.clone()),
-        Line::from("This is a line".reset()),
-        Line::from(vec![
-            Span::raw("Masked text: "),
-            Span::styled(Masked::new("password", '*'), Style::new().fg(Color::Red)),
-        ]),
-    ];
-    app.vertical_scroll_state = app.vertical_scroll_state.content_length(text.len());
-    app.horizontal_scroll_state = app.horizontal_scroll_state.content_length(long_line.len());
+    // app.vertical_scroll = max_scroll;
+    // app.vertical_scroll_state = app.vertical_scroll_state.position(inner_height);
 
-    let create_block = |title: &'static str| Block::bordered().gray().title(title.bold());
-
-    // let paragraph = Paragraph::new(text.clone())
-    //     .wrap(Wrap {
-    //         trim: true,
-    //     })
+    // #[allow(clippy::cast_possible_truncation)]
+    // let paragraph: Paragraph<'_> = Paragraph::new(app.logs_buffer.clone())
+    //     // .wrap(Wrap {
+    //     // trim: true,
+    //     // })
     //     .gray()
-    //     // .block(create_block("Vertical scrollbar without arrows, without track symbol and mirrored"))
     //     .block(Block::bordered())
     //     .scroll((app.vertical_scroll as u16, 0));
     // frame.render_widget(paragraph, area);
     // frame.render_stateful_widget(
-    //     Scrollbar::new(ScrollbarOrientation::VerticalLeft)
-    //         .symbols(scrollbar::VERTICAL)
-    //         .begin_symbol(None)
-    //         .track_symbol(None)
-    //         .end_symbol(None),
-    //     area.inner(Margin {
-    //         vertical: 1,
-    //         horizontal: 0,
-    //     }),
+    //     Scrollbar::new(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓")),
+    //     area,
     //     &mut app.vertical_scroll_state,
     // );
+    // Update scrollbar with full content length
+    let total_lines = app.logs_buffer.len();
+    app.vertical_scroll_state = app.vertical_scroll_state.content_length(total_lines);
 
-    let paragraph =
-        Paragraph::new(text.clone()).gray().block(Block::bordered()).scroll((app.vertical_scroll as u16, 0));
+    // Account for the bordered paragraph: inner height excludes the top/bottom borders
+    let inner_height = area.height.saturating_sub(2) as usize;
+    let max_scroll = total_lines.saturating_sub(inner_height);
+
+    if app.follow_tail {
+        app.vertical_scroll = max_scroll;
+        app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
+    } else if app.vertical_scroll > max_scroll {
+        // Clamp if content shrank or viewport grew
+        app.vertical_scroll = max_scroll;
+        app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
+    }
+
+    let start = app.vertical_scroll;
+    let end = start.saturating_add(inner_height).min(total_lines);
+    let visible: Vec<Line> = app.logs_buffer.iter().skip(start).take(end.saturating_sub(start)).cloned().collect();
+    // let visible: Vec<Line> = app
+    //     .logs_buffer
+    //     .iter()
+    //     .skip(start)
+    //     .take(end.saturating_sub(start))
+    //     // Borrow the stored String; no extra allocation per draw
+    //     // .map(|s| Line::from(s.as_str()))
+    //     .map(|s| s.clone())
+    //     .collect();
+
+    let paragraph = Paragraph::new(visible)
+        // .wrap(Wrap {
+        //     trim: true,
+        // })
+        .gray()
+        .block(Block::bordered());
+    // .scroll((app.vertical_scroll as u16, 0));
     frame.render_widget(paragraph, area);
     frame.render_stateful_widget(
         Scrollbar::new(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓")),
         area,
         &mut app.vertical_scroll_state,
     );
+}
 
-    // frame.render_widget(block, area);
+fn draw_second_tab(frame: &mut Frame, _app: &mut App, area: Rect) {
+    let [top, bottom] = Layout::vertical([Constraint::Length(31), Constraint::Min(0)]).areas::<2>(area);
+
+    let block: Block<'_> = Block::bordered();
+    frame.render_widget(block, top);
+    draw_footer(frame, bottom);
 }
 
 fn draw_footer(frame: &mut Frame, area: Rect) {
@@ -116,12 +123,4 @@ fn draw_footer(frame: &mut Frame, area: Rect) {
         trim: true,
     });
     frame.render_widget(paragraph, area);
-}
-
-fn draw_second_tab(frame: &mut Frame, _app: &mut App, area: Rect) {
-    let chunks = Layout::vertical([Constraint::Length(31), Constraint::Min(0)]).split(area);
-
-    let block = Block::bordered();
-    frame.render_widget(block, chunks[0]);
-    draw_footer(frame, chunks[1]);
 }

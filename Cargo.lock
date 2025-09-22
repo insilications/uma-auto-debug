@@ -4,8 +4,8 @@ version = 4
 
 [[package]]
 name = "adb_client"
-version = "2.1.16"
-source = "git+https://github.com/cocool97/adb_client.git?branch=main#d39e98695d6299a8bfd78b01328e8ddb85386b36"
+version = "2.1.17"
+source = "git+https://github.com/cocool97/adb_client.git?branch=main#373a5265a031856e527757df779bf0302d01ff04"
 dependencies = [
  "base64",
  "bincode",
